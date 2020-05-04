@@ -1,0 +1,246 @@
+# This code runs a conventional method to estimate excess deaths after COVID-19 emergency started .
+# However, it uses bootstrapping to also account for uncertainty in deaths not used to build temporal model
+rm(list=ls())
+library(stringr)
+library(gridExtra)
+library(grid)
+library(lubridate) #make_date
+library(tidyverse) #already includes ggplot
+library(mgcv) #gam
+#library(MASS) #mvnorm, make package available later since `select' clashes with dplyr select
+
+setwd("C:/Users/Roberto/Desktop/research/covid19")
+death_cert<-read.table("State_Custom_Data200501.csv",sep=",",header=T) #data from https://gis.cdc.gov/grasp/fluview/mortality.html
+all_pop<-read.table("nst-est2019-01.csv",sep=",",header=T) #https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html
+
+
+##### weeks reflects the completed week for which data is available. For example, week 14 of 2020 refers to deaths until 4/13/2020
+
+death_cert$TOTAL.DEATHS<-as.numeric(gsub(",", "", death_cert$TOTAL.DEATHS))#remove ,
+death_cert$NUM.PNEUMONIA.DEATHS<-as.numeric(gsub(",", "", death_cert$NUM.PNEUMONIA.DEATHS))#remove ,
+#all_pop$State<-as.character(gsub(".", "", all_pop$State))#remove .
+all_pop$Population<-as.numeric(gsub(",", "", all_pop$Population))#remove ,
+death_cert$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", death_cert$NUM.INFLUENZA.DEATHS))#remove ,
+
+death_cert2<-arrange(death_cert, SEASON)
+#state<-"California"; state2<-".California"
+#state<-"Colorado"; state2<-".Colorado"
+#state<-"Connecticut"; state2<-".Connecticut"  #wrong
+#state<-"Illinois"; state2<-".Illinois"
+#state<-"Louisiana"; state2<-".Louisiana"
+#state<-"Massachusetts"; state2<-".Massachusetts"
+#state<-"Michigan"; state2<-".Michigan"
+#state<-"New Jersey"; state2<-".New Jersey"
+state<-"New York"; state2<-".New York"
+#state<-"Pennsylvania"; state2<-".Pennsylvania"
+#state<-"Washington"; state2<-".Washington"
+
+
+nyc<-death_cert2%>%filter(SUB.AREA=="New York City")
+ny<-death_cert2%>%filter(SUB.AREA==state)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+
+ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+nyc<-nyc[1:(nrow(nyc)-2),]
+
+
+#### 2020 population chosen automatically below
+# https://www.usapopulation.org/new-york-population/ 20060000 but this number does not make sense compared to other years (https://worldpopulationreview.com/states)
+if(state=="New York"){
+  pop2020<- 19440000
+} else if(state=="California"){
+  pop2020<- 39937489
+} else if(state=="Colorado"){
+  pop2020<- 5845526
+} else if(state=="Connecticut"){
+  pop2020<- 3563077
+} else if(state=="Illinois"){
+  pop2020<- 12659682
+} else if(state=="Louisiana"){
+  pop2020<- 4645184
+} else if(state=="Massachusetts"){
+  pop2020<- 6976597
+} else if(state=="Michigan"){
+  pop2020<- 10045029
+} else if(state=="New Jersey"){
+  pop2020<- 8936574
+} else if(state=="Pennsylvania"){
+  pop2020<- 12820878 
+} else if(state=="Washington"){
+  pop2020<- 7797095
+}
+
+#### start date must be chosen with care. Significant excess deaths may have started even before the official first count. On the other hand
+#### excess deaths may be too low at the beginning of the official counts, reducing the estimated coefficient.
+#### This may be exarcerbated with the provisional counts being lower than actual deaths. We will choose start date based on inflection points on mortality charts
+ 
+
+if(state=="New York"){
+  start.date<-ymd("2020-03-21")
+} else if(state=="California"){
+  start.date<-ymd("2020-03-21")
+} else if(state=="Colorado"){
+  start.date<-ymd("2020-03-21")
+} else if(state=="Connecticut"){
+  start.date<-ymd("2020-03-07") #data not available to set start date for CT
+} else if(state=="Illinois"){
+  start.date<-ymd("2020-03-21")
+} else if(state=="Pennsylvania"){
+  start.date<-ymd("2020-03-28")
+} else if(state=="Massachusetts"){
+  start.date<-ymd("2020-03-28") 
+} else if(state=="Michigan"){
+  start.date<-ymd("2020-03-21") 
+} else if(state=="New Jersey"){
+  start.date<-ymd("2020-03-21")
+} else if(state=="Louisiana"){
+  start.date<-ymd("2020-03-14") #data not complete to set start date
+} else if(state=="Pennsylvania"){
+  start.date<-ymd("2020-03-28") #data not complete to set start date for PA
+} else if(state=="Washington"){
+  start.date<-ymd("2020-02-29")
+}
+
+
+
+
+if(state=="New York"){
+ p0<-ggplot() + 
+  geom_line(data = ny, aes(x = 1:nrow(ny), y = TOTAL.DEATHS), color = "blue") +
+  geom_line(data = nyc, aes(x = 1:nrow(ny), y = TOTAL.DEATHS), color = "red") +
+  xlab('Time') +
+  ylab('Mortality')
+
+
+p0b<-ggplot() + 
+  geom_line(data = ny, aes(x = 1:nrow(ny), y = NUM.PNEUMONIA.DEATHS), color = "blue") +
+  geom_line(data = nyc, aes(x = 1:nrow(ny), y = NUM.PNEUMONIA.DEATHS), color = "red") +
+  xlab('Time') +
+  ylab('Pneumonia Mortality')
+}
+
+tail(ny$TOTAL.DEATHS)
+tail(nyc$TOTAL.DEATHS) # it appears that NYC deaths are not a subset of NY state deaths since the pandemic in NYC made deaths higher than NY state.
+
+tail(ny$NUM.PNEUMONIA.DEATHS)
+tail(nyc$NUM.PNEUMONIA.DEATHS)
+
+
+if(state=="New York"){
+ny$TOTAL.DEATHS<-ny$TOTAL.DEATHS+nyc$TOTAL.DEATHS
+ny$NUM.PNEUMONIA.DEATHS<-ny$NUM.PNEUMONIA.DEATHS+nyc$NUM.PNEUMONIA.DEATHS
+ny$NUM.INFLUENZA.DEATHS<-ny$NUM.INFLUENZA.DEATHS+nyc$NUM.INFLUENZA.DEATHS
+}
+
+#death_cert2<-death_cert2%>%mutate(date=seq(as.Date("2015/9/28"), as.Date("2020/3/23"), "weeks"))
+
+pop<-all_pop%>%filter(State==state2)
+
+
+tmp <- bind_rows(data.frame(date = make_date(year = 2010:2019, month = 7, day = 2), 
+                            pop = pop$Population),
+           data.frame(date = make_date(year=2020, 
+                                             month=7, 
+                                             day = 2),
+                            pop = pop2020)) 
+tmp <- approx(tmp$date, tmp$pop, xout=ny$date, rule = 2)
+predicted_pop <- data.frame(date = tmp$x, pop = tmp$y)
+
+
+ny<-tbl_df(ny)
+ny <- ny %>% left_join(predicted_pop, by = "date") %>%
+  mutate(rate = TOTAL.DEATHS/pop*52*1000)
+
+p1 <- qplot(date, rate, data=ny, geom = "line")+
+scale_x_date(date_labels = "%b %y", date_breaks = "1 months") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  #ggtitle("Mortality rate") + 
+  ylab("Mortality Rate for State") + xlab("Date")
+p2 <- qplot(date, pop, data=predicted_pop, geom = "line")+
+scale_x_date(date_labels = "%b %y", date_breaks = "1 months") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +  
+  ylab("State Population") + xlab("Date")
+grid.arrange(p2, p1, ncol=2)
+
+#popandMortalityrate (after expanding screen in R)
+
+
+
+
+############## Poisson model and UQ
+lpop<-log(ny$pop)
+yr<-as.factor(ny$year)
+
+B<-10000;perturbsize<-0.5
+T<-nrow(ny)
+m<-which(ny$date=="2020-02-01")
+nym<-ny[1:m,];lpopm<-lpop[1:m]
+yrm<-yr[1:m]
+flpop=lpop[(m+1):nrow(ny)]
+nd<-data.frame(WEEK=ny$WEEK[(m+1):nrow(ny)],yrm=yr[(m+1):nrow(ny)])
+fit_e<-gam(TOTAL.DEATHS ~ s(WEEK,k=32,bs="cc")+yrm,offset=lpopm,family=quasipoisson(),method="REML",dat=nym)
+
+pfit_e<-gam(NUM.PNEUMONIA.DEATHS ~ s(WEEK,k=32,bs="cc")+yrm,offset=lpopm,family=quasipoisson(),method="REML",dat=nym)
+
+ifit_e<-gam(NUM.INFLUENZA.DEATHS ~ s(WEEK,k=32,bs="cc")+yrm,offset=lpopm,family=quasipoisson(),method="REML",dat=nym)
+
+
+ilink <- family(fit_e)$linkinv
+pilink <- family(pfit_e)$linkinv
+m<-which(ny$date=="2020-02-01")
+predd<- exp(flpop)*ilink(predict(fit_e,nd))
+new_m<-mean(ny$TOTAL.DEATHS[(m+1):nrow(ny)]) #sum(ny$TOTAL.DEATHS[227:235]-predd) is the point estimate of excess deaths
+pnew_m<-mean(ny$NUM.PNEUMONIA.DEATHS[(m+1):nrow(ny)])
+inew_m<-mean(ny$NUM.INFLUENZA.DEATHS[(m+1):nrow(ny)])
+pd <- data.frame(WEEK=ny$WEEK[(m+1):nrow(ny)],yrm=yr[(m+1):nrow(ny)])
+q<-nrow(pd)
+Zp <- predict(fit_e,pd,type="lpmatrix") ## map coefs to fitted curves
+pZp <- predict(pfit_e,pd,type="lpmatrix") ## map coefs to fitted curves
+iZp <- predict(ifit_e,pd,type="lpmatrix") ## map coefs to fitted curves
+
+spop<-ny$pop[(m+1):nrow(ny)]
+
+gamma <- coef(fit_e);Vb <- vcov(fit_e) ## posterior mean and cov of coefs
+pgamma <- coef(pfit_e);pVb <- vcov(pfit_e) ## posterior mean and cov of coefs
+igamma <- coef(ifit_e);iVb <- vcov(ifit_e) ## posterior mean and cov of coefs
+n <- 10000 #bringing up to 100000 change CIs little from 10000 but not too long to run
+library(MASS) #mvnorm
+set.seed(944)
+gr <- mvrnorm(n,gamma,Vb) ## simulate n rep coef vectors from post.
+set.seed(1944)
+pgr <- mvrnorm(n,pgamma,pVb)
+set.seed(2944)
+igr <- mvrnorm(n,igamma,iVb)
+a.range <- matrix(NA,n,nrow(Zp))
+pa.range <- matrix(NA,n,nrow(pZp))
+ia.range <- matrix(NA,n,nrow(iZp))
+cum <- rep(NA, n);pcum <- rep(NA, n);icum <- rep(NA, n)
+for (i in 1:n) { ## loop to get diff for each sim
+      
+      pred.a <- spop*ilink(Zp%*%gr[i,])  ## curve for this replicate
+      ppred.a <- spop*pilink(pZp%*%pgr[i,])
+      ipred.a <- spop*pilink(iZp%*%igr[i,])
+      j<-1000+i
+      set.seed(j)  
+      yboot<-rnorm(q,new_m,sqrt(new_m*fit_e$scale))
+      pyboot<-rnorm(q,pnew_m,sqrt(pnew_m*pfit_e$scale))
+      iyboot<-rnorm(q,inew_m,sqrt(inew_m*ifit_e$scale))
+      a.range[i,] <- yboot-pred.a ## range for this curve
+      pa.range[i,] <- pyboot-ppred.a
+      ia.range[i,] <- iyboot-ipred.a
+      cum[i]<-sum(yboot-pred.a)
+      pcum[i]<-sum(pyboot-ppred.a)
+      icum[i]<-sum(iyboot-ipred.a)
+}
+
+excess<-apply(a.range, 2,quantile,probs=c(0.025,.975) )
+ci1 <- quantile(cum, c(.025,.975)) #CI of excess deaths until last week
+ pexcess<-apply(pa.range, 2,quantile,probs=c(0.025,.975) )
+pci1 <- quantile(pcum, c(.025,.975)) #CI of excess deaths until last week
+iexcess<-apply(ia.range, 2,quantile,probs=c(0.025,.975) )
+ici1 <- quantile(icum, c(.025,.975)) #CI of excess deaths until last week
