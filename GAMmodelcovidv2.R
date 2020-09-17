@@ -9,8 +9,8 @@ library(tidyverse) #already includes ggplot
 library(mgcv) #gam
 #library(MASS) #mvnorm, make package available later since `select' clashes with dplyr select
 
-setwd("C:/Users/Roberto/Desktop/research/covid19")
-death_cert<-read.table("State_Custom_Data200501.csv",sep=",",header=T) #data from https://gis.cdc.gov/grasp/fluview/mortality.html
+setwd("C:/Users/prame/Desktop/research/covid19")
+death_cert<-read.table("State_Custom_Data200911.csv",sep=",",header=T) #data from https://gis.cdc.gov/grasp/fluview/mortality.html
 all_pop<-read.table("nst-est2019-01.csv",sep=",",header=T) #https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html
 
 
@@ -26,15 +26,18 @@ all_pop$Population<-as.numeric(gsub(",", "", all_pop$Population))#remove ,
 
 death_cert2<-arrange(death_cert, SEASON)
 
+date.rm<-17 #last 4 weeks removed from data set; unreliability. However, keeping original time frame of analysis - Until May 9
 #state<-"California"; state2<-".California"
 #state<-"Colorado"; state2<-".Colorado"
-#state<-"Connecticut"; state2<-".Connecticut"  #wrong
+#state<-"Connecticut"; state2<-".Connecticut" 
+#state<-"Florida"; state2<-".Florida"
 #state<-"Illinois"; state2<-".Illinois"
+#state<-"Indiana"; state2<-".Indiana"
 #state<-"Louisiana"; state2<-".Louisiana"
 #state<-"Massachusetts"; state2<-".Massachusetts"
 #state<-"Michigan"; state2<-".Michigan"
 #state<-"New Jersey"; state2<-".New Jersey"
-state<-"New York"; state2<-".New York"
+#state<-"New York"; state2<-".New York"
 #state<-"Pennsylvania"; state2<-".Pennsylvania"
 #state<-"Washington"; state2<-".Washington"
 
@@ -44,12 +47,12 @@ ny<-death_cert2%>%filter(SUB.AREA==state)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
 
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
 ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
-nyc<-nyc[1:(nrow(nyc)-2),]
+nyc<-nyc[1:(nrow(nyc)-date.rm),]
 
 
 #### 2020 population chosen automatically below
@@ -62,8 +65,12 @@ if(state=="New York"){
   pop2020<- 5845526
 } else if(state=="Connecticut"){
   pop2020<- 3563077
+} else if(state=="Florida"){
+  pop2020<- 21992985
 } else if(state=="Illinois"){
   pop2020<- 12659682
+} else if(state=="Indiana"){
+  pop2020<- 6745350
 } else if(state=="Louisiana"){
   pop2020<- 4645184
 } else if(state=="Massachusetts"){
@@ -90,10 +97,14 @@ if(state=="New York"){
 } else if(state=="Colorado"){
   start.date<-ymd("2020-03-21")
 } else if(state=="Connecticut"){
-  start.date<-ymd("2020-03-07") #data not available to set start date for CT
+  start.date<-ymd("2020-03-21") 
+} else if(state=="Florida"){
+  start.date<-ymd("2020-03-28") 
 } else if(state=="Illinois"){
   start.date<-ymd("2020-03-21")
-} else if(state=="Pennsylvania"){
+} else if(state=="Indiana"){
+  start.date<-ymd("2020-03-28")
+}else if(state=="Pennsylvania"){
   start.date<-ymd("2020-03-28")
 } else if(state=="Massachusetts"){
   start.date<-ymd("2020-03-28") 
@@ -102,9 +113,9 @@ if(state=="New York"){
 } else if(state=="New Jersey"){
   start.date<-ymd("2020-03-21")
 } else if(state=="Louisiana"){
-  start.date<-ymd("2020-03-14") #data not complete to set start date
+  start.date<-ymd("2020-03-21") 
 } else if(state=="Pennsylvania"){
-  start.date<-ymd("2020-03-28") #data not complete to set start date for PA
+  start.date<-ymd("2020-03-21") 
 } else if(state=="Washington"){
   start.date<-ymd("2020-02-29")
 }
@@ -208,6 +219,7 @@ Time<-(dn - min(dn))/(max(dn) - min(dn))
 #yr<-Time # this way, the year progress is measured continuosly and we can use np regression
 yr<-as.factor(ny$year)
 
+#chose k=10 because models for states was generally below k=10. Moreover, if too high, large jumps in covid cases (e.g. NY) may incorrectly pass as weekly effects
 fit_n0 <- gam(TOTAL.DEATHS ~ s(WEEK,k=10,bs="cc")+yr+wm,offset=lpop,family=poisson,method="REML",dat=ny)
 summary(fit_n0)
 pfit_n0 <- gam(NUM.PNEUMONIA.DEATHS ~ s(WEEK,k=10,bs="cc")+yr+wm,offset=lpop,family=poisson,method="REML",dat=ny)
@@ -442,12 +454,14 @@ for (i in 1:n) { ## loop to get diff for each sim
 }
 
 excess<-apply(a.range, 2,quantile,probs=c(0.025,.975) )
-ci1 <- quantile(cum1, c(.025,.975)) #CI of excess deaths until last week
+ci1 <- quantile(cum1, c(.025,.975)) #CI of excess all-cause deaths until May 9th
  pexcess<-apply(pa.range, 2,quantile,probs=c(0.025,.975) )
-pci1 <- quantile(pcum1, c(.025,.975)) #CI of excess deaths until last week
+pci1 <- quantile(pcum1, c(.025,.975)) #CI of excess pneumonia deaths until May 9th
 iexcess<-apply(ia.range, 2,quantile,probs=c(0.025,.975) )
-ici1 <- quantile(icum1, c(.025,.975)) #CI of excess deaths until last week
+ici1 <- quantile(icum1, c(.025,.975)) #CI of excess influenza deaths until May 9th
 
+
+### by subtracting official covid deaths from ci1 I get CI for excess deaths above official covid death toll
 
 
 #q<-ncol(excess)-length(total_exc_c)
