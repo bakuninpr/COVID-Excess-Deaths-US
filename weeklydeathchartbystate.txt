@@ -9,25 +9,26 @@ library(tidyverse) #already includes ggplot
 library(mgcv) #gam
 #library(MASS) #mvnorm, make package available later since `select' clashes with dplyr select
 
-setwd("C:/Users/Roberto/Desktop/research/covid19")
-death_cert<-read.table("State_Custom_Data200501.csv",sep=",",header=T) #data from https://gis.cdc.gov/grasp/fluview/mortality.html
-all_pop<-read.table("nst-est2019-01.csv",sep=",",header=T) #https://www.census.gov/data/tables/time-series/demo/popest/2010s-state-total.html
+setwd("C:/Users/prame/Desktop/research/covid19")
+death_cert<-read.table("State_Custom_Data200911.csv",sep=",",header=T) #data from https://gis.cdc.gov/grasp/fluview/mortality.html
+
 
 
 ##### weeks reflects the completed week for which data is available. For example, week 14 of 2020 refers to deaths until 4/13/2020
 
 death_cert$TOTAL.DEATHS<-as.numeric(gsub(",", "", death_cert$TOTAL.DEATHS))#remove ,
 death_cert$NUM.PNEUMONIA.DEATHS<-as.numeric(gsub(",", "", death_cert$NUM.PNEUMONIA.DEATHS))#remove ,
-#all_pop$State<-as.character(gsub(".", "", all_pop$State))#remove .
-all_pop$Population<-as.numeric(gsub(",", "", all_pop$Population))#remove ,
+
 
 death_cert2<-arrange(death_cert, SEASON)
+
+date.rm<-17 #last 4 weeks removed from data set; unreliability. However, keeping original time frame of analysis - Until May 9
 
 loc<-"California"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -37,14 +38,14 @@ ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
 ny$year<-as.factor(ny$year)
 pa<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('California')
+  geom_point(aes(color=year))+ guides(title.position="bottom")+xlab('Week')+ylab('Weekly Mortality')+ggtitle('California')
 
 
 loc<-"Colorado"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -55,11 +56,26 @@ pb<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Colorado')
 
+loc<-"Connecticut"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pb2<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Connecticut')
+
 loc<-"Florida"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -74,7 +90,7 @@ loc<-"Illinois"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -85,13 +101,44 @@ pc<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Illinois')
 
+loc<-"Indiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pc2<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Indiana')
+
+
+loc<-"Louisiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pc3<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Louisiana')
+
 
 
 loc<-"Massachusetts"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -109,7 +156,7 @@ loc<-"Michigan"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -126,7 +173,7 @@ loc<-"New Jersey"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -142,7 +189,7 @@ loc<-"New York City"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -152,14 +199,14 @@ ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
 ny$year<-as.factor(ny$year)
 pg<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+xlab('Week')+ylab('Weekly Mortality')+ggtitle('New York City')
+  geom_point(aes(color=year))+guides(color = FALSE)+xlab('')+ylab('')+ggtitle('New York City')
 
 
 loc<-"New York"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -172,13 +219,30 @@ ph<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('New York State')
 
 
+loc<-"Pennsylvania"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+
+ny$year<-as.factor(ny$year)
+ph2<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Pennsylvania')
+
+
 
 
 loc<-"Washington"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -194,9 +258,9 @@ pi<-ggplot(ny, aes(x=WEEK, y=TOTAL.DEATHS, group=year)) +
 
 
 
-grid.arrange(pa, pb, pbb, pc, pd, pe, pf, pg, ph, pi, ncol=3)
+grid.arrange(pa, pb, pb2, pbb, pc, pc2, pc3, pd, pe, pf, pg, ph, ph2, pi, ncol=3)
 
-
+#expand figure window and save as WeeklydeathsgroupedbyYearandStates
 
 
 
@@ -218,7 +282,7 @@ loc<-"California"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -228,14 +292,14 @@ ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
 ny$year<-as.factor(ny$year)
 pa<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('California')
+  geom_point(aes(color=year))+ guides(title.position="bottom")+xlab('Week')+ylab('Weekly Mortality')+ggtitle('California')
 
 
 loc<-"Colorado"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -246,11 +310,27 @@ pb<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Colorado')
 
+
+loc<-"Connecticut"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pb2<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Connecticut')
+
 loc<-"Florida"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -265,7 +345,7 @@ loc<-"Illinois"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -276,13 +356,44 @@ pc<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Illinois')
 
+loc<-"Indiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pc2<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Indiana')
+
+
+loc<-"Louisiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+pc3<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Louisiana')
+
 
 
 loc<-"Massachusetts"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -300,7 +411,7 @@ loc<-"Michigan"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -317,7 +428,7 @@ loc<-"New Jersey"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -333,7 +444,7 @@ loc<-"New York City"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -343,14 +454,14 @@ ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
 ny$year<-as.factor(ny$year)
 pg<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+xlab('Week')+ylab('Weekly Mortality')+ggtitle('New York City')
+  geom_point(aes(color=year))+guides(color = FALSE)+xlab('')+ylab('')+ggtitle('New York City')
 
 
 loc<-"New York"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -363,13 +474,27 @@ ph<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('New York State')
 
 
+loc<-"Pennsylvania"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+ph2<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Pennsylvania')
 
 
 loc<-"Washington"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -385,7 +510,9 @@ pi<-ggplot(ny, aes(x=WEEK, y=NUM.PNEUMONIA.DEATHS, group=year)) +
 
 
 
-grid.arrange(pa, pb, pbb, pc, pd, pe, pf, pg, ph, pi, ncol=3)
+grid.arrange(pa, pb, pb2, pbb, pc, pc2, pc3, pd, pe, pf, pg, ph, ph2, pi, ncol=3)
+
+#similar to previous figure and saved as PneumoniaWeeklydeathsgroupedbyYearandStates
 
 
 
@@ -396,7 +523,7 @@ loc<-"California"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -407,14 +534,14 @@ ny$year<-as.factor(ny$year)
 ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
 pa<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('California')
+  geom_point(aes(color=year))+ guides(title.position="bottom")+xlab('Week')+ylab('Weekly Mortality')+ggtitle('California')
 
 
 loc<-"Colorado"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -426,17 +553,34 @@ pb<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Colorado')
 
-loc<-"Florida"
+loc<-"Connecticut"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
 ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
 
 ny$year<-as.factor(ny$year)
+ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
+pb2<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Connecticut')
+
+loc<-"Florida"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
 pbb<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Florida')
@@ -445,7 +589,7 @@ loc<-"Illinois"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -458,12 +602,45 @@ pc<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
   geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Illinois')
 
 
+loc<-"Indiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
+pc2<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Indiana')
+
+
+loc<-"Louisiana"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
+pc3<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Louisiana')
+
 
 loc<-"Massachusetts"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -482,7 +659,7 @@ loc<-"Michigan"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -500,7 +677,7 @@ loc<-"New Jersey"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -517,7 +694,7 @@ loc<-"New York City"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -528,14 +705,14 @@ ny$year<-as.factor(ny$year)
 ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
 pg<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
   geom_line(aes(color=year))+
-  geom_point(aes(color=year))+xlab('Week')+ylab('Weekly Mortality')+ggtitle('New York City')
+  geom_point(aes(color=year))+guides(color = FALSE)+xlab('')+ylab('')+ggtitle('New York City')
 
 
 loc<-"New York"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -550,12 +727,29 @@ ph<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
 
 
 
+loc<-"Pennsylvania"
+ny<-death_cert2%>%filter(SUB.AREA==loc)
+lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
+ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
+#CDC website states week 16 ends on April 18. Need to match that
+ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
+who<-which(is.na(ny$date)==T) 
+ny$date[who]<-c(ymd("2015-12-26"),ymd("2018-12-29"),ymd("2019-12-28"))
+
+ny$year<-as.factor(ny$year)
+ny$NUM.INFLUENZA.DEATHS<-as.numeric(gsub(",", "", ny$NUM.INFLUENZA.DEATHS))#remove ,
+ph2<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
+  geom_line(aes(color=year))+
+  geom_point(aes(color=year))+ guides(color = FALSE)+xlab('')+ylab('')+ggtitle('Pennsylvania')
+
+
 
 loc<-"Washington"
 ny<-death_cert2%>%filter(SUB.AREA==loc)
 lastweek<-ny$WEEK[nrow(ny)] #since it changes everytime I update the data
 ny$year<-c(rep(2015,times=13),rep(2016,times=52),rep(2017,times=52),rep(2018,times=52),rep(2019,times=52),rep(2020,times=lastweek))
-ny<-ny[1:(nrow(ny)-2),] #last two weeks are not reliable
+ny<-ny[1:(nrow(ny)-date.rm),] #last two weeks are not reliable
 #CDC website states week 16 ends on April 18. Need to match that
 ny$date<-as.Date(paste(ny$year, ny$WEEK, 6, sep="-"), "%Y-%U-%u")-7
 who<-which(is.na(ny$date)==T) 
@@ -572,4 +766,4 @@ pi<-ggplot(ny, aes(x=WEEK, y=NUM.INFLUENZA.DEATHS, group=year)) +
 
 
 
-grid.arrange(pa, pb, pc, pd, pe, pf, pg, ph, pi, ncol=3)
+grid.arrange(pa, pb, pb2, pbb, pc, pc2, pc3, pd, pe, pf, pg, ph, ph2, pi, ncol=3)
